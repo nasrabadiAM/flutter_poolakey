@@ -1,3 +1,11 @@
+## 2.2.0
+* Upgrade poolakey dependency to 2.2.0
+
+## 2.1.0
+* Upgrade poolakey dependency to 2.1.0
+* Fix paymentConnection uninitialized issue
+* Added disconnect method callable from flutter
+
 ## 1.3.0
 * Add (trivial) example project.
 * Upgrade Poolakey dependency to 1.2.3
