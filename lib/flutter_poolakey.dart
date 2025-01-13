@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import 'purchase_info.dart';
@@ -28,37 +27,50 @@ class FlutterPoolakey {
   /// You can also disable the local security check (only if you are using Bazaar's REST API)
   /// by passing null as [inAppBillingKey].
   ///
+  /// You should listen to [onConnectSuccess] callback to make sure FlutterPoolakey is connected successfully.
+  ///
+  /// You should listen to [onConnectFailed] callback to handle connect error.
+  ///
   /// You should listen to [onDisconnected] callback and call [FlutterPoolakey.connect] to reconnect again.
   ///
   /// This function may return an error, you should handle the error and check the stacktrace to resolve it.
-  static Future<bool> connect(String? inAppBillingKey,
-      {VoidCallback? onDisconnected}) async {
-    _registerOnDisconnect(onDisconnected);
-    return await _channel
+  static Future<void> connect(String? inAppBillingKey,
+      {VoidCallback? onConnectionSucceed,
+        VoidCallback? onConnectionFailed,
+        VoidCallback? onDisconnected}) async {
+    _registerConnectCallBack(onConnectionSucceed, onConnectionFailed, onDisconnected);
+    await _channel
         .invokeMethod('connect', {'in_app_billing_key': inAppBillingKey});
   }
 
-  static void _registerOnDisconnect(VoidCallback? onDisconnected) {
-    if (onDisconnected == null) {
+  static void _registerConnectCallBack(VoidCallback? onConnectionSucceed,
+      VoidCallback? onConnectionFailed, VoidCallback? onDisconnected) {
+    if (onConnectionSucceed == null &&
+        onConnectionFailed == null &&
+        onDisconnected == null) {
       return;
     }
     _channel.setMethodCallHandler((call) {
       if (call.method == 'disconnected') {
-        onDisconnected.call();
+        onDisconnected?.call();
+        return Future.value(true);
+      } else if (call.method == 'connectionSucceed') {
+        onConnectionSucceed?.call();
+        return Future.value(true);
+      } else if (call.method == 'connectionFailed') {
+        onConnectionFailed?.call();
         return Future.value(true);
       }
       throw StateError('method ${call.method} is not supported');
     });
   }
 
-
-  ///To avoid problems such as Memory Leak, 
+  ///To avoid problems such as Memory Leak,
   ///you must disconnect from the market in the dispose method of your page widget
   /// or when you no longer have anything to do with it:
   static Future<void> disconnect() async {
     return _channel.invokeMethod('disconnect');
   }
-
 
   /// Initiates the purchase flow
   ///
@@ -73,10 +85,10 @@ class FlutterPoolakey {
   ///
   /// If it succeeded, it returns the [PurchaseInfo] of the purchased product.
   static Future<PurchaseInfo> purchase(
-    String productId, {
-    String payload = "",
-    String dynamicPriceToken = "",
-  }) async {
+      String productId, {
+        String payload = "",
+        String dynamicPriceToken = "",
+      }) async {
     final map = await _channel.invokeMethod('purchase', {
       'product_id': productId,
       'payload': payload,
@@ -98,10 +110,10 @@ class FlutterPoolakey {
   ///
   /// If it succeeded, it returns the [PurchaseInfo] of the purchased product.
   static Future<PurchaseInfo> subscribe(
-    String productId, {
-    String payload = "",
-    String dynamicPriceToken = "",
-  }) async {
+      String productId, {
+        String payload = "",
+        String dynamicPriceToken = "",
+      }) async {
     final map = await _channel.invokeMethod('subscribe', {
       'product_id': productId,
       'payload': payload,
@@ -136,7 +148,7 @@ class FlutterPoolakey {
   }
 
   /// Check Trial-Subscription existanse
-  /// 
+  ///
   /// It availbles if not subscribe any item.
   static Future<Map> checkTrialSubscription() async {
     return await _channel.invokeMethod("checkTrialSubscription");
@@ -165,7 +177,7 @@ class FlutterPoolakey {
   /// Retrieves list of [PurchaseInfo] which contains all subscribed products in user's inventory.
   static Future<List<PurchaseInfo>> getAllSubscribedProducts() async {
     final List list =
-        await _channel.invokeMethod("get_all_subscribed_products");
+    await _channel.invokeMethod("get_all_subscribed_products");
     return list.map((map) => PurchaseInfo.fromMap(map)).toList();
   }
 

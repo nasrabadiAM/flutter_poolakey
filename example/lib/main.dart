@@ -66,9 +66,24 @@ class _MyHomePageState extends State<MyHomePage> {
     var rsaKey =
         "MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwDbkRScfggn+JSs+DzcZK20ZbxKPKv060aekC4dxqapamlgf9PncC5/4sqhUU4SdeKE770H1s7dJhmV5QEnzLawJTgiTzD3RFcadl2H4dduro/KxVyAe5nNKE/Xg+uRalLU/Hw9Or44m2xDyWESWj8sqweaGDUnsoHWJFsyVwwIj15fx3cDX6kjObC0gYns1o79x+COWCqyIlDwE2Pf7Xum55FASKFH8lqlYpEzR38CAwEAAQ== ";
     try {
-      connected = await FlutterPoolakey.connect(
+      await FlutterPoolakey.connect(
         rsaKey,
-        onDisconnected: () => showSnackBar("Poolakey disconnected!"),
+        onConnectionSucceed: () {
+          connected = true;
+          print("BZRTAG, onConnectSuccess");
+          updateStatus();
+        },
+        onConnectionFailed: () {
+          connected = false;
+          print("BZRTAG, onConnectFailed");
+          updateStatus();
+        },
+        onDisconnected: () {
+          print("BZRTAG, onDisconnected");
+          showSnackBar("Poolakey disconnected!");
+          connected = false;
+          updateStatus();
+        },
       );
     } on Exception catch (e) {
       showSnackBar(e.toString());
@@ -77,6 +92,10 @@ class _MyHomePageState extends State<MyHomePage> {
       });
     }
 
+    updateStatus();
+  }
+
+  void updateStatus() {
     setState(() {
       if (!connected) {
         status = "Service: Not Connected";
@@ -127,6 +146,7 @@ class _MyHomePageState extends State<MyHomePage> {
               ),
               FilledButton(
                   onPressed: () {
+                    print("BZRTAG, on Purchase called");
                     purchaseProduct(
                       productIdController.text,
                       "purchasePayload",
@@ -193,13 +213,18 @@ class _MyHomePageState extends State<MyHomePage> {
     String payload,
     String? dynamicPriceToken,
   ) async {
+    print(
+        "BZRTAG1, purchaseProduct productId=$productId, payload=$payload, dynamicPriceToken=$dynamicPriceToken");
     if (!connected) {
       showSnackBar('Service: Not Connected');
       return;
     }
     try {
+      print(
+          "BZRTAG2, purchaseProduct productId=$productId, payload=$payload, dynamicPriceToken=$dynamicPriceToken");
       PurchaseInfo? response = await FlutterPoolakey.purchase(productId,
           payload: payload, dynamicPriceToken: dynamicPriceToken ?? "");
+      print("BZRTAG3, purchaseProduct response=$response, consume=$consume, connected=$connected");
       if (consume) {
         consumePurchasedItem(response.purchaseToken);
       }
@@ -308,6 +333,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
     try {
       bool? response = await FlutterPoolakey.consume(purchaseToken);
+      print("BZRTAG, consumePurchasedItem response=$response, connected=$connected");
+
       showSnackBar("consumePurchasedItem success $response");
     } catch (e) {
       showSnackBar(e.toString());
